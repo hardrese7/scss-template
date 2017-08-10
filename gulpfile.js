@@ -1,32 +1,41 @@
-var autoprefixer    = require('gulp-autoprefixer');
-var browserSync     = require('browser-sync').create();
-var cache           = require('gulp-cache');
-var cleanCSS        = require('gulp-clean-css');
-var del             = require('del');
-var gulp            = require('gulp');
-var sass            = require('gulp-sass');
-var notify          = require("gulp-notify");
-var rename          = require('gulp-rename');
-var imagemin        = require('gulp-imagemin');
+/*======  imports  ======*/
+const autoprefixer    = require('gulp-autoprefixer');
+const browserSync     = require('browser-sync').create();
+const cache           = require('gulp-cache');
+const cleanCSS        = require('gulp-clean-css');
+const concat          = require('gulp-concat');
+const uglify          = require('gulp-uglify');
+const del             = require('del');
+const gulp            = require('gulp');
+const sass            = require('gulp-sass');
+const notify          = require("gulp-notify");
+const rename          = require('gulp-rename');
+const imagemin        = require('gulp-imagemin');
+/*======  /imports  ======*/
 
 /*======  Path variables  ======*/
-var dist = 'dist';
-var src = 'src';
-var scssPath = `${src}/scss/*.scss`;
-var cssPath = `${dist}/css`;
-var imgSrcPath = `${src}/img/**/*`;
-var imgDistPath = `${dist}/img`
-var htmlPath = '*.html';
+const dist = 'dist';
+const src = 'src';
+
+const scssPath = `${src}/scss/**/*.scss`;
+const cssPath = `${dist}/css`;
+const imgSrcPath = `${src}/img/**/*`;
+const imgDistPath = `${dist}/img`;
+const jsLibsSrcPath = `${src}/js/libs/**/*.js`;
+const jsCommonSrcPath = `${src}/js/common.js`;
+const jsDistPath = `${dist}/js`;
+const htmlPath = '*.html';
 /*======  /Path variables  ======*/
 
 // Static Server + watching scss/html files
 gulp.task('serve', ['sass'], function() {
-
     browserSync.init({
         server: "./"
     });
 
     gulp.watch(scssPath, ['sass']);
+    gulp.watch(jsLibsSrcPath, ['js']);
+    gulp.watch(jsCommonSrcPath, ['js']);
     gulp.watch(htmlPath).on('change', browserSync.reload);
 });
 
@@ -41,12 +50,22 @@ gulp.task('sass', function() {
         .pipe(browserSync.stream());
 });
 
-gulp.task('imagemin', function() {
+// Image minify
+gulp.task('im', function() {
 	return gulp.src(imgSrcPath)
 	.pipe(cache(imagemin()))
 	.pipe(gulp.dest(imgDistPath));
 });
 
-gulp.task('clearcache', function () { return cache.clearAll(); });
-gulp.task('removedist', function() { return del.sync(dist); });
+// Concat and minify all js
+gulp.task('js', function() {
+    return gulp.src([jsLibsSrcPath, jsCommonSrcPath])
+    .pipe(concat('scripts.min.js'))
+	.pipe(uglify()) // comment  while debuging
+    .pipe(gulp.dest(jsDistPath))
+    .pipe(browserSync.reload({stream: true}));
+});
+
+gulp.task('cc', function () { return cache.clearAll(); }); // clear cache
+gulp.task('rd', function() { return del.sync(dist); }); // remove dist
 gulp.task('default', ['serve']);
